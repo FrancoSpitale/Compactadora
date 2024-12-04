@@ -1,0 +1,296 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import serial
+import re
+import string
+import pygame
+from pygame.locals import *
+import sys
+from threading import Thread
+from pygame.color import Color
+import json
+import escpos
+from escpos.printer import Usb
+#from escpos import *
+import binascii
+import random
+import time
+import datetime
+today = datetime.date.today()
+import os
+
+import mysql.connector as mariadb
+
+mariadb_connection = mariadb.connect(user='root', password='essentirdeverdad', database='tickets')
+cursor = mariadb_connection.cursor()
+
+
+pygame.init()
+
+
+cantidad= "Cantidad Botellas"
+score = 0
+score_font = pygame.font.Font(None, 30)
+cantidad = pygame.font.Font(None, 30)
+
+
+
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 480
+
+CURHR = 'hola'
+Conteo= 0
+Cantidad_Latas = 0
+Cantidad_botellas=0
+Lugar=1
+Maquina=1
+Var=0
+ser = serial.Serial('/dev/ttyACM0',9600,timeout=None )
+p = Usb(0x0483,0x5743)
+#Epson = printer.File("/dev/usb/lp0")
+global AUX
+
+def worker():
+   global CURHR
+   global Cantidad_botellas
+   global Cantidad_Latas
+   global AUX
+   global Conteo
+   global Codigo
+   global Var
+   while True:
+     rcv = ser.readline()
+     if len(rcv) > 0:
+       cmd = rcv.decode('utf-8').rstrip()
+       print (cmd)
+       #current_message = json.loads(rcv)
+       #if current_message["state"] == "running":
+       CURHR=cmd
+       if cmd == 'Deposito':
+            pygame.display.set_caption("tutorial pygame parte 2")
+            fondo = pygame.image.load("/home/pi/Downloads/Cocacoladeposito (1).png").convert()
+            screen.blit(fondo, (0, 0))
+            pygame.display.flip()
+            Conteo=0
+       if cmd == 'Botellas':
+            pygame.display.set_caption("tutorial pygame parte 2")
+            fondo = pygame.image.load("/home/pi/Downloads/CONTEO DE ENVASES.png").convert()
+            screen.blit(fondo, (0, 0))
+            pygame.display.flip()
+            rcv = ser.readline()
+            cmd = rcv.decode('utf-8').rstrip()
+            Cantidad_botellas = cmd
+            print (Cantidad_botellas)
+            Conteo=1
+       if cmd == 'Latas':
+            pygame.display.set_caption("tutorial pygame parte 2")
+            fondo = pygame.image.load("/home/pi/Downloads/CONTEO DE ENVASES.png").convert()
+            screen.blit(fondo, (0, 0))
+            pygame.display.flip()
+            rcv = ser.readline()
+            cmd = rcv.decode('utf-8').rstrip()
+            Cantidad_Latas=cmd
+            print (Cantidad_Latas)
+            Conteo=1
+       if cmd == 'Ingrese':
+            pygame.display.set_caption("tutorial pygame parte 2")
+            fondo = pygame.image.load("/home/pi/Downloads/INGRESE ENVASES.png").convert()
+            screen.blit(fondo, (0, 0))
+            pygame.display.flip()    
+            Conteo=0
+       if cmd == 'Peligro':
+            pygame.display.set_caption("tutorial pygame parte 2")
+            fondo = pygame.image.load("/home/pi/Downloads/Fuera de servicio.png").convert()
+            screen.blit(fondo, (0, 0))
+            pygame.display.flip()    
+            Conteo=0
+             
+            
+t = Thread(target=worker)
+t.daemon = True
+t.start()
+
+class Button:
+   def __init__(self, text):
+      self.text = text
+      self.is_hover = False
+      self.default_color = (10,10,10)
+      self.hover_color = (153,0,0)
+      self.font_color = (255,255,255)
+      self.obj = False
+      
+   def label(self):
+      '''button label font'''
+      font = pygame.font.Font(None, 25)
+      return font.render(self.text, 1, self.font_color)
+      
+   def color(self):
+      '''change color when hovering'''
+      if self.is_hover:
+         return self.hover_color
+      else:
+         return self.default_color
+         
+   def draw(self, screen, mouse, rectcoord, labelcoord):
+      '''create rect obj, draw, and change color based on input'''
+      self.obj  = pygame.draw.rect(screen, self.color(), rectcoord)
+      screen.blit(self.label(), labelcoord)
+      
+      #change color if mouse over button
+      self.check_hover(mouse)
+      
+   def check_hover(self, mouse):
+      '''adjust is_hover value based on mouse over button - to change hover color'''
+      if self.obj.collidepoint(mouse):
+          
+         self.is_hover = True 
+      else:
+         self.is_hover = False
+         
+if __name__ == '__main__':
+
+         
+   btn = Button('Imprimir Ticket')
+   btn2 = Button('Donar lo Reciclado')
+   #btn3 = Button('Button 3')
+   
+   clock = pygame.time.Clock()
+   screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+   pygame.display.set_caption("tutorial pygame parte 2")
+   fondo = pygame.image.load("/home/pi/Downloads/INGRESE ENVASES.png").convert()
+   screen.blit(fondo, (0, 0))
+   pygame.display.flip()
+   mouse = pygame.mouse.get_pos()
+   Cursor=1
+   Codigo="00000000000000000000000000"
+   some_name="00000000000000000000000000"
+   
+   run = True
+   while run:
+                  
+      for event in pygame.event.get():
+         if event.type == pygame.QUIT:
+            run = False
+         elif event.type == pygame.MOUSEBUTTONUP:
+            if btn.obj.collidepoint(mouse):
+               print('button 1 clicked')
+               Cursor = 0
+               Conteo = 0
+               pygame.display.set_caption("tutorial pygame parte 2")
+               fondo = pygame.image.load("/home/pi/Downloads/Graciasporreciclar.png").convert()
+               screen.blit(fondo, (0, 0))
+               pygame.display.flip()
+               
+               #sudo usermod -a -G lp pi (Para dar permisos de super usuario a la impresora)
+               p.image('/home/pi/Downloads/coca cola.png')
+               p.text("RECICLADORA PET\n")
+               p.text("Sustentabilidad Ambiental\n")
+               p.text("Cantidad de botellas: ")
+               p.text(Cantidad_botellas)
+               p.text("\n")
+               p.text("Cantidad de latas: ")
+               p.text(Cantidad_Latas)
+               p.text("\n")
+               
+               Codigo= str(Cantidad_Latas) + str(Cantidad_botellas) + str(today.day) + str(today.month) + str(today.year) + str(datetime.datetime.now().strftime("%H%M%S")) + str(Maquina) + str(Lugar) 
+               print(Codigo)
+               Codigo=str(Codigo)
+               
+               cursor.execute("INSERT INTO cupon (codigo,botellas,latas) VALUES (%s,%s,%s)", (Codigo, Cantidad_botellas,Cantidad_Latas))
+               mariadb_connection.commit()
+               some_name = Codigo
+               
+               cursor.execute("SELECT botellas,latas FROM cupon WHERE codigo=%s", (some_name,))
+
+               for row in cursor.fetchall() :
+                #data from rows
+                botellas = str(row[0])
+                latas = str(row[1])
+                
+                #print it
+                print ("          Cantidad de Botellas" + botellas)
+                print ("          Cantidad de Latas " + latas)
+                
+               
+               p.barcode(Codigo,'CODE39',64,2,'','')
+               p.cut()
+               
+               
+               #Epson.barcode(Codigo,'Code128',64,2,function_type='B')
+               #Epson.barcode(Codigo, 'Code128', function_type='B')
+               
+                 
+               
+               ser.write("1".encode())
+               ser.write("1".encode())
+               ser.write("1".encode())
+               ser.write("1".encode())
+               
+            #   pygame.display.set_caption("tutorial pygame parte 2")
+            #   fondo = pygame.image.load("GRACIAS RECICLAR.png").convert()
+            #   screen.blit(fondo, (0, 0))
+            #   pygame.display.flip()
+               
+            if btn2.obj.collidepoint(mouse):
+                pygame.display.set_caption("tutorial pygame parte 2")
+                fondo = pygame.image.load("/home/pi/Downloads/Graciasporsudonacion.png").convert()
+                screen.blit(fondo, (0, 0))
+                pygame.display.flip()
+                Cursor = 0
+                Conteo = 0
+                
+                ser.write("1".encode())
+                ser.write("1".encode())
+                ser.write("1".encode())
+                
+                
+            #elif btn2.obj.collidepoint(mouse):
+            #   print('button 2 clicked')
+            #elif btn3.obj.collidepoint(mouse):
+            #   print('button 3 clicked')
+      
+      if Conteo == 1:
+        
+        pygame.display.update() 
+        btn.draw(screen, mouse, (20,140,180,80), (45,170))
+        btn2.draw(screen, mouse, (20,270,180,80), (35,300))
+      ###################(posición rec,tamaño rec) , (posición texto) 
+      #btn3.draw(screen, mouse, (100,160,100,20), (125,163))
+      #btn.check_hover(mouse)
+      #pygame.display.set_caption("tutorial pygame parte 2")
+      #fondo = pygame.image.load("Llamar al encargado.png").convert()
+      #screen.blit(fondo, (0, 0))
+      #pygame.display.flip()
+      #screen.fill((0,0,0))
+        score_surf = score_font.render(str(Cantidad_botellas), 10, (255, 255, 255))
+        score_pos = [210, 70]
+        screen.blit(score_surf, score_pos)
+          
+        cantidad_surf = cantidad.render(str("Cantidad Botellas: " ), 1, (255, 255, 255))
+        score_pos = [20, 70]
+        screen.blit(cantidad_surf, score_pos)            
+          #label1 = myfont.render(Cantidad_botellas, 1, (0,0,0))
+          #screen.blit(label1, (200, 150))
+        score_surf = score_font.render(str(Cantidad_Latas), 10, (255, 255, 255))
+        score_pos = [180, 100]
+        screen.blit(score_surf, score_pos)
+          
+        cantidad_surf = cantidad.render(str("Cantidad Latas:"), 1, (255, 255, 255))
+        score_pos = [20, 100]
+        screen.blit(cantidad_surf, score_pos)
+         
+          
+          #if Cursor==1:
+              #pygame.mouse.set_pos(20,140) 
+          #    pygame.mouse.set_visible(0)          
+          
+      mouse = pygame.mouse.get_pos()
+      #pygame.display.flip()
+      #pg.display.update()    
+      #pygame.display.update()       
+      #clock.tick(60)
+      pygame.event.pump()
+      keys = pygame.key.get_pressed()
+      if keys[K_ESCAPE]:
+         quit
